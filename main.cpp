@@ -1,80 +1,203 @@
-
-#include <iostream>
-#include<cstring>
-#include<stdlib.h>
+#include<iostream>m,/, ≥
+#include<iomanip>
+#define MAX 20
 using namespace std;
-
-class KMP{
-    char *pattern;
-    int *lps;
-    int m;
-public:
-    KMP(){}
-    KMP(char *pat){
-        m=strlen(pat);
-        pattern=new char[m+2];
-        for(int i=0;i<=m+1;i++){
-            pattern[i]=*(pat+i-1);
+struct Node
+{
+    int data;
+    Node *next;
+};
+class SList
+{
+    private:
+        Node *a;
+        int size;
+    public:
+        SList();
+        bool insertEnd(int);
+        bool ElementAt(int,int&);
+        int GetSize()    {    return size;        }
+};
+SList::SList()
+{
+    a = NULL;
+    size = 0;
+}
+bool SList::insertEnd(int x)
+{
+    Node *n;
+     n = new Node;
+    if(n==NULL)
+    {
+        return false;
+    }
+    n->data = x;
+    n->next = NULL;
+    if(a==NULL)
+    {
+        a = n;
+        size++;
+        return true;
+    }
+    Node *t;
+    t = a;
+    while(t!=NULL)
+    {
+        if(t->next==NULL)
+        {
+            t->next = n;
+            size++;
+            return true;
         }
-        lps=new int[m+1];
-        compute_prefix();
+        t = t->next;
     }
-    void printlps(){
-        for(int i=0;i<m+1;i++)
-            cout<<lps[i];
-    }
-    void compute_prefix(){
-        //m=strlen(pat);
-        lps[1]=0;
-        int k=0;
-        for(int q=2;q<=m;q++){
-            while(k<0 && pattern[k+1]!=pattern[q])
-                k=lps[k];
-            if(pattern[k+1]==pattern    [q])
-                k=k+1;
-            lps[q]=k;
+    return false;
+}
+bool SList::ElementAt(int p, int &x)
+{
+    Node *t = a;
+    int c=1;
+    while(t!=NULL)
+    {
+        if(c==p)
+        {
+            x = t->data;
+            return true;
         }
         
+        t = t->next;
+        c++;
     }
-    void kmpmatcher(char *text){
-        int n=strlen(text);
-        int q=0;
-        for(int i=0;i<=n;i++){
-            while(q<0 && pattern[q+1]!=text[i])
-                q=lps[q];
-            if(pattern[q+1]==text[i])
-                q=q+1;
-            if(q==m){
-                cout<<"match occured at "<<i-m+1<<endl;
-                q=lps[q];
-            }
-            
-            
-        }
-        cout<<q;
-    }
-    
-    
+    return false;
+}
+struct Vertex
+{
+    SList AdjList;
+    int Value;
+    int Parent;
+    int Distance;
 };
-
-int main(){
-    char txt[50]; //"ABABDABABCABABCABAB";
-       char pat[10]; //"ABABCABAB";
-       char ch='y';
-       cout << "Enter the pattern : ";
-       cin >> pat;
-       KMP K(pat);
-       cout << "The preprocessed longest suffix array for the given pattern : "<<endl;
-       K.printlps();
-       cout << endl;
-       do
-       {
-          cout << "Enter the text : ";
-          cin >> txt;
-          K.kmpmatcher(txt);
-          cout << "Do you want to check for the same pattern in another text?(y/n) ";
-          cin >> ch;
-       }
-       while (ch == 'y' || ch == 'Y');
-       return 0;
+class Graph
+{
+    Vertex *V;
+    int size;
+    void Relax(int, int, int [][MAX]);
+    public:
+        Graph(int);
+        void AddEdge(int,int);
+        bool BellmanFord(int [][MAX],int);
+        void ShowGraph();
+};
+void Graph::Relax(int u, int v, int w[][MAX])
+{
+    if(V[v].Distance>V[u].Distance+w[u][v])
+    {
+        V[v].Distance = V[u].Distance+w[u][v];
+        V[v].Parent = u;
     }
+}
+Graph::Graph(int n)
+{
+    size = n;
+    V = new Vertex[n];
+    for(int i=0;i<n;i++)
+    {
+        V[i].Value = i;
+        V[i].Parent = -1;
+        V[i].Distance = 9999;
+    }
+}
+void Graph::ShowGraph()
+{
+    int mincost=0;
+    cout<<"\n"<<"Vertex | "<<"Parent | "<<"Distance | ";
+    cout<<"\n********************************************";
+    for(int i=0;i<size;i++)
+    {
+        cout<<"\n";
+        if(V[i].Parent==-1)
+            cout<<setw(6)<<V[i].Value<<" | "<<"Source"<<" | "<<setw(8)<<V[i].Distance<<" | ";
+        else
+            cout<<setw(6)<<V[i].Value<<" | "<<setw(6)<<V[i].Parent<<" | "<<setw(8)<<V[i].Distance<<" | ";
+        
+    }
+    cout<<"\n********************************************";
+}
+bool Graph::BellmanFord(int w[][MAX],int s)
+{
+    V[s].Distance=0;
+    int u,v,p,i;
+    for(i=0;i<size-1;i++)
+    {
+        for(u=0;u<size;u++)
+        {
+            for(int p=1;p<=V[u].AdjList.GetSize();p++)
+            {
+                if(V[u].AdjList.ElementAt(p,v))
+                {
+                    if(w[u][v]!=0)
+                    {
+                        Relax(u,v,w);
+                    }
+                    
+                }
+            }
+        }
+    }
+    
+    for(u=0;u<size;u++)
+    {
+        for(p=1;p<=V[u].AdjList.GetSize();p++)
+        {
+            if(V[u].AdjList.ElementAt(p,v))
+            {
+                if(V[v].Distance>V[u].Distance+w[u][v])
+                {
+                    return false;
+                }
+            }
+        }
+    }
+    return true;
+}
+void Graph::AddEdge(int from, int to)
+{
+    V[from].AdjList.insertEnd(to);
+}
+int main()
+{
+    int n;
+    //Test Input-1
+    n=6;
+    //Cost Matrix for the input graph
+    int b[][MAX]={    {0,6,4,5,0,0},
+                        {0,0,0,0,-1,8},
+                        {0,-2,0,0,3,0},
+                        {0,0,-2,0,0,-1},
+                        {0,0,0,0,0,3},
+                        {0,0,0,0,0,0} };
+
+    Graph g(n);
+    for(int i=0;i<n;i++)
+    {
+        for(int j=0;j<n;j++)
+        {
+            if(b[i][j]!=0)
+            {
+                g.AddEdge(i,j);
+            }
+        }
+    }
+    int s=0;
+    bool res;
+    res = g.BellmanFord(b,s);
+    if(res)
+    {
+cout<<"\n\nSingle Source Shortest Path (Bellman-Ford Algorithm) Result:\n";
+        g.ShowGraph();
+    }
+    else
+    {
+        cout<<"\nNegative Weight Cycle is Present. \nSo, Could Not find Shortest Path....";
+    }
+}
